@@ -110,11 +110,19 @@ Here is the training logs and some detection results:
     'Learning rate decay boundaries by global_step (comma-separated list).')
 	tf.app.flags.DEFINE_string(
     'lr_decay_factors', '0.1, 1, 0.1, 0.01',
+    
+ 
     'The values of learning_rate decay factor for each segment between boundaries (comma-separated list).')
 	```
 	- Lower the learning rate and run more steps until convergency.
 - Why this re-implementation perform better than the reported performance
   - I don't know
+
+##  Training on Intel Xeon 
+
+We tested the code on Intel Xeon Platinum 8180 (2-socket, 28 physical cores per socket) using TensorFlow 1.10.0, Python 3.6.5, CentOS 7. TensorFlow was built from source with Intel MKL-DNN library support using gcc-6.3.0. Training on a single node with default batch size (32), we obtain mAP score of 77.8 on VOC07 test set. 
+
+To enable faster training, we provide code for multinode training on 16 workers with weak scaling (global batch size 16*32 = 512). Distributed training is implemented using all-reduce functionality from Uber's Horovod library. As is typical, we add learning rate warm-up scheme for large batch training and provide hyperparameters we used to achieve convergence. For global batch size of 512, we obtained test accuracy of 77.05 mAP (averaged over 3 training runs).
 
 
 ## ##

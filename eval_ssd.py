@@ -30,6 +30,15 @@ from preprocessing import ssd_preprocessing
 from utility import anchor_manipulator
 from utility import scaffolds
 
+from platform_util import platform
+
+# set environment variables 
+p=platform()
+os.environ["OMP_NUM_THREADS"] = str(p.num_cores_per_socket()*p.num_cpu_sockets())
+os.environ["KMP_BLOCKTIME"] = "0"
+os.environ["KMP_SETTINGS"] = "1"
+os.environ["KMP_AFFINITY"] = "granularity=fine,verbose,compact,1,0"
+
 # hardware related configuration
 tf.app.flags.DEFINE_integer(
     'num_readers', 8,
@@ -38,7 +47,7 @@ tf.app.flags.DEFINE_integer(
     'num_preprocessing_threads', 24,
     'The number of threads used to create the batches.')
 tf.app.flags.DEFINE_integer(
-    'num_cpu_threads', 0,
+    'num_cpu_threads', (p.num_cores_per_socket()*p.num_cpu_sockets()),
     'The number of cpu cores used to train.')
 tf.app.flags.DEFINE_float(
     'gpu_memory_fraction', 1., 'GPU memory fraction to use.')
@@ -380,7 +389,8 @@ def main(_):
     os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
 
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=FLAGS.gpu_memory_fraction)
-    config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False, intra_op_parallelism_threads=FLAGS.num_cpu_threads, inter_op_parallelism_threads=FLAGS.num_cpu_threads, gpu_options=gpu_options)
+     # set inter_op to 1 and intra_op to number of physical cores
+    config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False, intra_op_parallelism_threads=FLAGS.num_cpu_threads, inter_op_parallelism_threads=1, gpu_options=gpu_options)
 
     # Set up a RunConfig to only save checkpoints once per training cycle.
     run_config = tf.estimator.RunConfig().replace(
